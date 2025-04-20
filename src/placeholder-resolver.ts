@@ -29,11 +29,11 @@ export async function resolveSinglePlaceholder(placeholder: string): Promise<str
     if (placeholder.startsWith('env:')) {
         const varName = placeholder.substring(4);
         if (!varName) {
-            throw new ResolutionError('Environment variable name cannot be empty.', placeholder);
+            throw new ResolutionError(`Placeholder "${placeholder}" invalid: environment variable name cannot be empty.`, placeholder);
         }
         const value = process.env[varName];
         if (value === undefined) {
-            throw new ResolutionError(`Environment variable "${varName}" is not set.`, placeholder);
+            throw new ResolutionError(`Placeholder "${placeholder}" resolution failed: environment variable "${varName}" is not set.`, placeholder);
         }
         return value;
     }
@@ -41,7 +41,7 @@ export async function resolveSinglePlaceholder(placeholder: string): Promise<str
     if (placeholder.startsWith('file:')) {
         const filePath = placeholder.substring(5);
         if (!filePath) {
-            throw new ResolutionError('File path cannot be empty.', placeholder);
+            throw new ResolutionError(`Placeholder "${placeholder}" invalid: file path cannot be empty.`, placeholder);
         }
         const expandedPath = untildify(filePath);
         try {
@@ -49,29 +49,29 @@ export async function resolveSinglePlaceholder(placeholder: string): Promise<str
             return content.trim(); // Trim whitespace from file content
         } catch (err: any) {
             if (err.code === 'ENOENT') {
-                throw new ResolutionError(`File not found at "${expandedPath}".`, placeholder);
+                throw new ResolutionError(`Placeholder "${placeholder}" resolution failed: file not found at "${expandedPath}".`, placeholder);
             }
-            throw new ResolutionError(`Failed to read file "${expandedPath}": ${err.message}`, placeholder);
+            throw new ResolutionError(`Placeholder "${placeholder}" resolution failed: failed to read file "${expandedPath}": ${err.message}`, placeholder);
         }
     }
 
     if (placeholder.startsWith('keyring:')) {
         if (!keytar) {
-             throw new ResolutionError('keytar module is not available. Cannot resolve keyring: placeholders.', placeholder);
+             throw new ResolutionError(`Placeholder "${placeholder}" resolution failed: keytar module is not available.`, placeholder);
         }
         const parts = placeholder.substring(8).split(':');
         if (parts.length !== 2 || !parts[0] || !parts[1]) {
-            throw new ResolutionError('Invalid keyring format. Expected "keyring:service:account".', placeholder);
+            throw new ResolutionError(`Placeholder "${placeholder}" invalid format: expected "keyring:service:account".`, placeholder);
         }
         const [service, account] = parts;
         try {
             const secret = await keytar.getPassword(service, account);
             if (secret === null) { // keytar returns null if not found
-                throw new ResolutionError(`Secret not found in keychain for service="${service}", account="${account}".`, placeholder);
+                throw new ResolutionError(`Placeholder "${placeholder}" resolution failed: secret not found in keychain for service="${service}", account="${account}".`, placeholder);
             }
             return secret;
         } catch (err: any) {
-             throw new ResolutionError(`Failed to get secret from keychain for service="${service}", account="${account}": ${err.message}`, placeholder);
+             throw new ResolutionError(`Placeholder "${placeholder}" resolution failed: could not get secret from keychain for service="${service}", account="${account}": ${err.message}`, placeholder);
         }
     }
 
@@ -93,11 +93,10 @@ export async function resolvePlaceholders(envInstructions: Record<string, string
             resolvedEnv[key] = resolvedValue;
         } catch (err) {
             if (err instanceof ResolutionError) {
-                // Add the target variable name to the error context
-                throw new ResolutionError(`Failed to resolve placeholder for environment variable "${key}": ${err.message}`, err.placeholder);
+                throw new ResolutionError(`Placeholder "${err.placeholder}" for env var "${key}" resolution failed: ${err.message}`, err.placeholder);
             } else {
                  // Rethrow unexpected errors
-                 throw new Error(`Unexpected error resolving placeholder for "${key}": ${err instanceof Error ? err.message : String(err)}`);
+                 throw new Error(`Unexpected error resolving placeholder "${value}" for env var "${key}": ${err instanceof Error ? err.message : String(err)}`);
             }
         }
     });

@@ -9,10 +9,16 @@ import packageJson from '../package.json' with { type: 'json' };
 const program = new Command();
 
 program
-  .version(packageJson.version)
+  .version(packageJson.version, '-V, --version', 'output the current version')
   .description('Securely launch MCP servers by resolving credentials from external sources.')
   .option('--target-env <jsonString>',
     'JSON string mapping target env vars to literals or placeholders (e.g., \'{"API_KEY": "env:MY_API_KEY"}\')')
+  .addHelpText('after', `
+    Examples:
+      $ mcp-safe-run --help
+      $ mcp-safe-run --target-env '{"API_KEY":"env:GH_TOKEN_FOR_MCP"}' npx -y @modelcontextprotocol/server-github
+      $ mcp-safe-run --target-env '{"TOKEN":"file:~/secret.txt","SECRET":"keyring:service:account"}' npx -y @modelcontextprotocol/server-github
+  `)
   .argument('<targetCommand>', 'The target MCP server command to run (e.g., npx, python)')
   .argument('[targetArgs...]', 'Arguments for the target MCP server command')
   .allowUnknownOption(false)
