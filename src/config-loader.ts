@@ -6,7 +6,6 @@ import untildify from 'untildify';
 
 // --- Constants ---
 const CONFIG_FILE_NAMES = ['.mcp-saferun.yaml', '.mcp-saferun.yml'];
-const USER_CONFIG_DIR = path.join(os.homedir(), '.config', 'mcp-safe-run');
 
 // --- Types ---
 
@@ -23,6 +22,14 @@ export interface ConfigFile {
 }
 
 // --- Functions ---
+
+/**
+ * Gets the path to the user-specific configuration directory.
+ * Lazily evaluated to allow mocking os.homedir() in tests.
+ */
+function getUserConfigDir(): string {
+    return path.join(os.homedir(), '.config', 'mcp-safe-run');
+}
 
 /**
  * Checks if a file exists and is accessible.
@@ -54,9 +61,10 @@ async function findConfigFile(): Promise<string | null> {
     }
 
     // 2. Check user config directory
-    await fs.mkdir(USER_CONFIG_DIR, { recursive: true }); // Ensure directory exists
+    const userConfigDir = getUserConfigDir();
+    await fs.mkdir(userConfigDir, { recursive: true }); // Ensure directory exists
     for (const fileName of CONFIG_FILE_NAMES) {
-        const userPath = path.join(USER_CONFIG_DIR, fileName);
+        const userPath = path.join(userConfigDir, fileName);
         if (await fileExists(userPath)) {
             return userPath;
         }
@@ -101,7 +109,8 @@ export async function loadConfig(configPath?: string): Promise<{ config: ConfigF
             throw new Error('Config file must contain a top-level "profiles" object.');
         }
 
-        console.error(`[mcp-safe-run] Loaded configuration from: ${finalPath}`);
+        // Use console.log for successful load message
+        console.log(`[mcp-safe-run] Loaded configuration from: ${finalPath}`);
         return { config, filePath: finalPath };
     } catch (err) {
         console.error(`[mcp-safe-run] Error loading or parsing config file "${finalPath}": ${err instanceof Error ? err.message : String(err)}`);
