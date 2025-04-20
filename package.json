@@ -1,0 +1,38 @@
+{
+  "name": "mcp-safe-run",
+  "version": "0.1.0",
+  "description": "Securely launch MCP servers by resolving credentials from external sources.",
+  "main": "dist/index.js",
+  "type": "module",
+  "bin": {
+    "mcp-safe-run": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "npm run build && npm start --",
+    "prepublishOnly": "npm run build" 
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "cli",
+    "security",
+    "secrets",
+    "credentials",
+    "wrapper",
+    "launcher"
+  ],
+  "author": "vanandell@proton.me",
+  "license": "MIT",
+  "dependencies": {
+    "commander": "^13.x.x"
+  },
+  "devDependencies": {
+    "@types/node": "^20.x.x",
+    "typescript": "^5.x.x"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
