@@ -11,7 +11,8 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "npm run build && npm start --",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest"
   },
   "keywords": [
     "mcp",
@@ -31,8 +32,11 @@
     "untildify": "^5.0.0"
   },
   "devDependencies": {
+    "@types/jest": "^29.5.14",
     "@types/node": "^20.x.x",
     "@types/untildify": "^3.0.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.3.2",
     "typescript": "^5.x.x"
   },
   "engines": {
