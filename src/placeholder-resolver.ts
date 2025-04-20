@@ -3,7 +3,7 @@ import path from 'path';
 import untildify from 'untildify';
 
 // Define the type for the keytar getter function
-type KeytarGetter = (service: string, account: string) => Promise<string | null>;
+export type KeytarGetter = (service: string, account: string) => Promise<string | null>;
 
 // Keep dynamic import logic, but make it lazy (only import if needed)
 let keytarModule: typeof import('keytar') | null = null;

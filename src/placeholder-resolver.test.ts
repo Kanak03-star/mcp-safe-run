@@ -3,14 +3,15 @@ import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-// Import the functions normally now
-import { resolvePlaceholders, resolveSinglePlaceholder, ResolutionError } from './placeholder-resolver.js';
-
-// --- Remove All Previous Mocking Setup ---
-// No more jest.unstable_mockModule or top-level await imports needed
+// Import the functions and the type now
+import {
+    resolvePlaceholders,
+    resolveSinglePlaceholder,
+    ResolutionError,
+    KeytarGetter // Import the type
+} from './placeholder-resolver.js';
 
 // --- Test Setup ---
-
 // Helper to get the directory name in ES module scope
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -34,12 +35,13 @@ afterAll(async () => {
 
 describe('resolveSinglePlaceholder', () => {
 
-  // Create a mock getter for keytar
-  let mockKeytarGetter: jest.Mock;
+  // Create a mock getter for keytar, explicitly typed
+  let mockKeytarGetter: jest.Mock<KeytarGetter>;
 
   beforeEach(() => {
      // Reset the mock before each test
-     mockKeytarGetter = jest.fn().mockResolvedValue('mock-keytar-secret');
+     // Use jest.fn<Type>() for explicit typing
+     mockKeytarGetter = jest.fn<KeytarGetter>().mockResolvedValue('mock-keytar-secret');
   });
 
   // --- Environment Variable Tests ---
@@ -128,12 +130,13 @@ describe('resolveSinglePlaceholder', () => {
 
 describe('resolvePlaceholders', () => {
 
-   // Create a mock getter for keytar
-   let mockKeytarGetter: jest.Mock;
+   // Create a mock getter for keytar, explicitly typed
+   let mockKeytarGetter: jest.Mock<KeytarGetter>;
 
   beforeEach(() => {
     // Reset mock function call history
-    mockKeytarGetter = jest.fn().mockResolvedValue('mock-keytar-secret');
+    // Use jest.fn<Type>() for explicit typing
+    mockKeytarGetter = jest.fn<KeytarGetter>().mockResolvedValue('mock-keytar-secret');
     process.env.TEST_ENV_VAR1 = 'value1';
     process.env.TEST_ENV_VAR2 = 'value2';
   });
