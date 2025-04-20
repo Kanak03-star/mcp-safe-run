@@ -2,7 +2,9 @@ import fs from 'fs/promises';
 import path from 'path';
 import os from 'os';
 import yaml from 'js-yaml';
-import untildify from 'untildify';
+import untildify_default from 'untildify';
+import { PathLike } from 'fs';
+import * as fsPromises from 'fs/promises';
 
 // --- Constants ---
 const CONFIG_FILE_NAMES = ['.mcp-saferun.yaml', '.mcp-saferun.yml'];
@@ -21,24 +23,32 @@ export interface ConfigFile {
     // Add global settings here later if needed
 }
 
+// Define the interface for injectable dependencies
+interface LoadConfigDependencies {
+    fsAccess: (path: PathLike, mode?: number) => Promise<void>;
+    fsReadFile: (path: PathLike, options: { encoding: BufferEncoding } | BufferEncoding) => Promise<string>;
+    fsMkdir: (path: PathLike, options?: import('fs').MakeDirectoryOptions) => Promise<string | undefined>;
+    osHomedir: () => string;
+    yamlLoad: (input: string, options?: yaml.LoadOptions) => unknown;
+    untildify: (path: string) => string;
+    cwd: () => string;
+}
+
 // --- Functions ---
 
 /**
  * Gets the path to the user-specific configuration directory.
- * Lazily evaluated to allow mocking os.homedir() in tests.
  */
-function getUserConfigDir(): string {
-    return path.join(os.homedir(), '.config', 'mcp-safe-run');
+function getUserConfigDir(homedirFunc: () => string): string {
+    return path.join(homedirFunc(), '.config', 'mcp-safe-run');
 }
 
 /**
  * Checks if a file exists and is accessible.
- * @param filePath The path to the file.
- * @returns True if the file exists, false otherwise.
  */
-async function fileExists(filePath: string): Promise<boolean> {
+async function fileExists(filePath: string, fsAccessFunc: LoadConfigDependencies['fsAccess']): Promise<boolean> {
     try {
-        await fs.access(filePath);
+        await fsAccessFunc(filePath);
         return true;
     } catch {
         return false;
@@ -47,25 +57,31 @@ async function fileExists(filePath: string): Promise<boolean> {
 
 /**
  * Finds the configuration file path by searching standard locations.
- * @returns The path to the found config file, or null if none is found.
  */
-async function findConfigFile(): Promise<string | null> {
-    const currentDir = process.cwd();
+async function findConfigFile(deps: LoadConfigDependencies): Promise<string | null> {
+    const currentDir = deps.cwd();
 
     // 1. Check current directory
     for (const fileName of CONFIG_FILE_NAMES) {
         const localPath = path.join(currentDir, fileName);
-        if (await fileExists(localPath)) {
+        if (await fileExists(localPath, deps.fsAccess)) {
             return localPath;
         }
     }
 
     // 2. Check user config directory
-    const userConfigDir = getUserConfigDir();
-    await fs.mkdir(userConfigDir, { recursive: true }); // Ensure directory exists
+    const userConfigDir = getUserConfigDir(deps.osHomedir);
+    try {
+      await deps.fsMkdir(userConfigDir, { recursive: true }); // Ensure directory exists
+    } catch (mkdirErr) {
+      // Ignore error if directory already exists, bubble up others
+      if ((mkdirErr as NodeJS.ErrnoException)?.code !== 'EEXIST') {
+        console.warn(`[mcp-safe-run] Warning: Could not create user config dir ${userConfigDir}: ${mkdirErr}`);
+      }
+    }
     for (const fileName of CONFIG_FILE_NAMES) {
         const userPath = path.join(userConfigDir, fileName);
-        if (await fileExists(userPath)) {
+        if (await fileExists(userPath, deps.fsAccess)) {
             return userPath;
         }
     }
@@ -76,30 +92,47 @@ async function findConfigFile(): Promise<string | null> {
 /**
  * Loads and parses the configuration file.
  * @param configPath Optional path to a specific config file.
- *                 If not provided, searches standard locations.
+ * @param injectedDeps Optional dependencies for testing.
  * @returns The parsed configuration object, or null if no file is found or parsing fails.
  */
-export async function loadConfig(configPath?: string): Promise<{ config: ConfigFile; filePath: string } | null> {
+export async function loadConfig(
+    configPath?: string,
+    injectedDeps?: Partial<LoadConfigDependencies> // Allow partial injection for tests
+): Promise<{ config: ConfigFile; filePath: string } | null> {
+    // Use injected dependencies or fall back to real ones
+    const deps: LoadConfigDependencies = {
+        fsAccess: injectedDeps?.fsAccess ?? fs.access,
+        fsReadFile: injectedDeps?.fsReadFile ?? fs.readFile,
+        fsMkdir: injectedDeps?.fsMkdir ?? fs.mkdir,
+        osHomedir: injectedDeps?.osHomedir ?? os.homedir,
+        yamlLoad: injectedDeps?.yamlLoad ?? yaml.load,
+        untildify: injectedDeps?.untildify ?? untildify_default,
+        cwd: injectedDeps?.cwd ?? process.cwd,
+    };
+
     let finalPath: string | null = null;
 
     if (configPath) {
-        finalPath = untildify(configPath);
-        if (!(await fileExists(finalPath))) {
+        finalPath = deps.untildify(configPath);
+        if (!(await fileExists(finalPath, deps.fsAccess))) {
             console.error(`[mcp-safe-run] Error: Specified config file not found: ${finalPath}`);
             return null;
         }
     } else {
-        finalPath = await findConfigFile();
+        finalPath = await findConfigFile(deps);
     }
 
     if (!finalPath) {
-        console.warn('[mcp-safe-run] Warning: No config file found in standard locations (.mcp-saferun.yaml/.yml in project or ~/.config/mcp-safe-run/).');
+        // Only warn if no specific path was given
+        if (!configPath) {
+             console.warn('[mcp-safe-run] Warning: No config file found in standard locations (.mcp-saferun.yaml/.yml in project or ~/.config/mcp-safe-run/).');
+        }
         return null;
     }
 
     try {
-        const fileContent = await fs.readFile(finalPath, 'utf8');
-        const config = yaml.load(fileContent) as ConfigFile;
+        const fileContent = await deps.fsReadFile(finalPath, 'utf8');
+        const config = deps.yamlLoad(fileContent) as ConfigFile;
 
         // Basic validation
         if (!config || typeof config !== 'object') {
@@ -109,7 +142,6 @@ export async function loadConfig(configPath?: string): Promise<{ config: ConfigF
             throw new Error('Config file must contain a top-level "profiles" object.');
         }
 
-        // Use console.log for successful load message
         console.log(`[mcp-safe-run] Loaded configuration from: ${finalPath}`);
         return { config, filePath: finalPath };
     } catch (err) {
