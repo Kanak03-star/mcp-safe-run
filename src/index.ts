@@ -13,6 +13,7 @@ program
   .description('Securely launch MCP servers by resolving credentials from external sources.')
   .option('--target-env <jsonString>',
     'JSON string mapping target env vars to literals or placeholders (e.g., \'{"API_KEY": "env:MY_API_KEY"}\')')
+  .option('-v, --verbose', 'enable verbose logging')
   .addHelpText('after', `
     Examples:
       $ mcp-safe-run --help
@@ -26,13 +27,17 @@ program
 
 // --- Argument Processing ---
 const options = program.opts();
+const verbose = options.verbose as boolean;
 const targetCommand = program.args[0]!;
 const targetArgs = program.args.slice(1);
 
-console.error(`Launcher: Starting ${packageJson.name} v${packageJson.version}`);
-console.error(`Launcher: Target Command = ${targetCommand}`);
-console.error(`Launcher: Target Args = [${targetArgs.join(', ')}]`);
-console.error(`Launcher: Raw Target Env Instructions = ${options.targetEnv || '(Not provided)'}`);
+console.error(`[mcp-safe-run] Starting ${packageJson.name} v${packageJson.version}`);
+console.error(`[mcp-safe-run] Target Command = ${targetCommand}`);
+console.error(`[mcp-safe-run] Target Args = [${targetArgs.join(', ')}]`);
+console.error(`[mcp-safe-run] Raw --target-env instructions = ${options.targetEnv || '(Not provided)'}`);
+if (verbose) {
+  console.error(`[mcp-safe-run] Inherited environment: ${JSON.stringify(process.env)}`);
+}
 
 // --- Async IIFE for async/await ---
 (async () => {
@@ -46,8 +51,14 @@ console.error(`Launcher: Raw Target Env Instructions = ${options.targetEnv || '(
       if (typeof instructions !== 'object' || instructions === null || Array.isArray(instructions)) {
         throw new Error('--target-env must be a valid JSON object string.');
       }
+      if (verbose) {
+        console.error(`[mcp-safe-run] Parsed target-env instructions: ${JSON.stringify(instructions)}`);
+      }
       console.error('Launcher: Resolving placeholders in --target-env...');
       const resolved = await resolvePlaceholders(instructions);
+      if (verbose) {
+        console.error(`[mcp-safe-run] Resolved environment: ${JSON.stringify(resolved)}`);
+      }
       resolvedEnv = { ...resolvedEnv, ...resolved };
       console.error('Launcher: Placeholders resolved successfully.');
     } catch (err) {
@@ -66,10 +77,17 @@ console.error(`Launcher: Raw Target Env Instructions = ${options.targetEnv || '(
     console.error('Launcher: No --target-env provided. Using inherited environment.');
   }
 
+  if (verbose) {
+    console.error(`[mcp-safe-run] Final environment for target process: ${JSON.stringify(resolvedEnv)}`);
+  }
+
   // 2. Spawn Target Process
   console.error('Launcher: Spawning target process...');
   try {
     const child = spawn(targetCommand, targetArgs, { env: resolvedEnv as NodeJS.ProcessEnv });
+    if (verbose) {
+      console.error(`[mcp-safe-run] Spawned child PID: ${child.pid}`);
+    }
 
     // 3. Pipe stdio
     process.stdin.pipe(child.stdin);

@@ -20,6 +20,7 @@ mcp-safe-run [options] <targetCommand> [targetArgs...]
 
 - `-V, --version`  Output the current version.
 - `--target-env <jsonString>`  JSON mapping of target environment variables to placeholders or literals.
+- `-v, --verbose`  Enable verbose logging (outputs diagnostic details).
 
 ### Placeholder Syntax
 
@@ -58,6 +59,14 @@ mcp-safe-run [options] <targetCommand> [targetArgs...]
    {
      "GITHUB_TOKEN": "env:GH_TOKEN_FOR_MCP"
    }
+   ```
+
+5. **Verbose mode logging:**
+
+   ```sh
+   export GH_TOKEN_FOR_MCP=ghp_...TOKEN...
+   mcp-safe-run -v --target-env '{"GITHUB_TOKEN":"env:GH_TOKEN_FOR_MCP"}' \
+     npx -y @modelcontextprotocol/server-github
    ```
 
 ## Troubleshooting
