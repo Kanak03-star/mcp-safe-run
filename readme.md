@@ -137,6 +137,11 @@ profiles:
     - **`keyring:`**: Verify the secret exists in the OS keychain (use OS tools or `keytar` CLI if installed). Ensure `keytar` prerequisites are met.
 - **`keytar` Build/Runtime Issues:** Check platform notes below and ensure necessary build tools/libraries are installed.
 - **Invalid JSON (`--target-env`):** Ensure proper quoting, especially when used in a shell.
+- **Unsupported Placeholder (`env:`) in Some Clients (Cursor, Windsurf, Claude Desktop):** These environments don’t pass shell environment variables to `mcp-safe-run`, so `env:` placeholders won’t resolve. `file:` and `keyring:` placeholders still work. For example:
+
+    ```sh
+    mcp-safe-run --target-env '{"API_KEY":"file:./api_key.txt","SECRET":"keyring:my-service:account","DB_URL":"file:./db_url.txt"}' <targetCommand> [args...]
+    ```
 
 ## Platform Notes
 
