@@ -28,11 +28,13 @@
   "license": "MIT",
   "dependencies": {
     "commander": "^13.x.x",
+    "js-yaml": "^4.1.0",
     "keytar": "^7.9.0",
     "untildify": "^5.0.0"
   },
   "devDependencies": {
     "@types/jest": "^29.5.14",
+    "@types/js-yaml": "^4.0.9",
     "@types/node": "^20.x.x",
     "@types/untildify": "^3.0.0",
     "jest": "^29.7.0",
