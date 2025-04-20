@@ -46,13 +46,13 @@ console.error(`Launcher: Raw Target Env Instructions = ${options.targetEnv || '(
       console.error('Launcher: Placeholders resolved successfully.');
     } catch (err) {
       if (err instanceof ResolutionError) {
-        console.error(`Error resolving placeholder: ${err.message} (Placeholder: ${err.placeholder})`);
+        console.error(`[mcp-safe-run] ${err.message} (Placeholder: ${err.placeholder})`);
       } else if (err instanceof SyntaxError) {
-        console.error(`Error: Invalid JSON for --target-env: ${err.message}`);
+        console.error(`[mcp-safe-run] Invalid JSON for --target-env: ${err.message}`);
       } else if (err instanceof Error) {
-        console.error(`Error processing --target-env: ${err.message}`);
+        console.error(`[mcp-safe-run] Error processing --target-env: ${err.message}`);
       } else {
-        console.error(`Unknown error: ${err}`);
+        console.error(`[mcp-safe-run] Unknown error processing --target-env: ${err}`);
       }
       process.exit(1);
     }
@@ -82,7 +82,11 @@ console.error(`Launcher: Raw Target Env Instructions = ${options.targetEnv || '(
     });
 
     child.on('error', (err: Error) => {
-      console.error(`Launcher: Error managing process: ${err.message}`);
+      if ((err as any).code === 'ENOENT') {
+        console.error(`[mcp-safe-run] Target command not found: ${targetCommand}`);
+      } else {
+        console.error(`[mcp-safe-run] Error spawning target process: ${err.message}`);
+      }
       process.stdin.unpipe(child.stdin);
       process.exit(1);
     });
@@ -97,10 +101,14 @@ console.error(`Launcher: Raw Target Env Instructions = ${options.targetEnv || '(
       child.kill('SIGTERM'); setTimeout(() => child.kill('SIGKILL'), 1000);
     });
   } catch (err) {
-    console.error(`Launcher: Fatal spawn error: ${err instanceof Error ? err.message : err}`);
+    if ((err as any).code === 'ENOENT') {
+      console.error(`[mcp-safe-run] Target command not found: ${targetCommand}`);
+    } else {
+      console.error(`[mcp-safe-run] Fatal spawn error: ${err instanceof Error ? err.message : err}`);
+    }
     process.exit(1);
   }
 })().catch(err => {
-  console.error(`Launcher: Uncaught error: ${err instanceof Error ? err.message : err}`);
+  console.error(`[mcp-safe-run] Uncaught error: ${err instanceof Error ? err.message : err}`);
   process.exit(1);
 });
