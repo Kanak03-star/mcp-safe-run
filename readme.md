@@ -1,8 +1,122 @@
 # mcp-safe-run
 
-**Securely launch MCP servers by resolving credentials from external sources.**
+**Secure, zero-leak secrets for IDE-integrated MCP servers in under a minute.**
 
-This tool acts as a wrapper, allowing you to define environment variables for a target command using placeholders that resolve secrets from environment variables, files, or the OS keychain, without exposing secrets directly in your shell history or process list.
+mcp-safe-run lets you launch Model Context Protocol (MCP) servers for AI-powered IDEs (like Cursor, Windsurf, or Claude Desktop) using secrets that are never exposed in your shell, process list, or version control. Store secrets persistently in your OS keychain or a hidden file, reference them safely in your IDE config, and launch servers with a single click—no more copy-pasting tokens or risking accidental leaks.
+
+---
+
+## Quick Start
+
+1. **Install:**
+    ```sh
+    npm install -g mcp-secure-launcher
+    ```
+2. **Create a secrets directory:**
+    ```sh
+    mkdir -p ./secrets
+    echo "/secrets/*" >> .gitignore
+    ```
+3. **Add your secret:**
+    ```sh
+    echo "ghp_...TOKEN..." > ./secrets/github_token.txt
+    chmod 600 ./secrets/github_token.txt
+    ```
+4. **Configure your IDE:** Add the following to your IDE's MCP server settings (e.g., `mcp_settings.json`):
+    ```json
+    {
+      "mcpServers": {
+        "github": {
+          "command": "mcp-safe-run",
+          "args": [
+            "--target-env",
+            "{\"GITHUB_TOKEN\": \"file:./secrets/github_token.txt\"}",
+            "--",
+            "npx",
+            "-y",
+            "@modelcontextprotocol/server-github"
+          ],
+          "env": {}
+        }
+      }
+    }
+    ```
+5. **Launch the server from your IDE.**
+
+---
+
+## Setup for IDEs (Cursor, Windsurf, Claude Desktop)
+
+To use this project with an IDE that supports Model Context Protocol (like Cursor, Windsurf, or Claude Desktop), add an `mcpServers` section to your settings (such as `mcp_settings.json`). This enables the IDE to launch the MCP server with secure environment resolution.
+
+**Example configuration:**
+
+```json
+{
+  "mcpServers": {
+    "github": {
+      "command": "mcp-safe-run",
+      "args": [
+        "--target-env",
+        "{\"GITHUB_TOKEN\": \"keyring:mcp-github:personal-pat\"}",
+        "--",
+        "npx",
+        "-y",
+        "@modelcontextprotocol/server-github"
+      ],
+      "env": {}
+    }
+  }
+}
+```
+
+### Setting Up Secrets for IDE Integration
+
+#### Option 1: Using a Key File (`file:`)
+1. Create a hidden directory for your secrets (if it doesn't exist):
+    ```sh
+    mkdir -p ./secrets
+    ```
+2. Add a `.gitignore` rule to keep secrets out of version control:
+    ```
+    # .gitignore
+    /secrets/*
+    ```
+3. Create your secret file, e.g. `./secrets/github_token.txt`, and paste your token or secret value inside.
+4. Secure the file so only your user can read it:
+    ```sh
+    chmod 600 ./secrets/github_token.txt
+    ```
+5. In your configuration, use a `file:` placeholder, e.g.:
+    ```json
+    { "GITHUB_TOKEN": "file:./secrets/github_token.txt" }
+    ```
+
+#### Option 2: Using the OS Keychain (`keyring:`) on macOS
+1. Open the **Keychain Access** app (Applications > Utilities > Keychain Access).
+2. Click the `+` button to add a new password item.
+3. Set the **Keychain Item Name** (service) and **Account Name** (account) to match your placeholder, for example:
+    - Service: `mcp-github`
+    - Account: `personal-pat`
+4. Paste your secret/token into the "Password" field and save.
+5. Alternatively, you can use the `keytar` Node.js CLI or API to add secrets programmatically:
+    ```js
+    // Example using keytar in Node.js
+    const keytar = require('keytar');
+    keytar.setPassword('mcp-github', 'personal-pat', 'ghp_...your_token...');
+    ```
+6. In your configuration, use a `keyring:` placeholder, e.g.:
+    ```json
+    { "GITHUB_TOKEN": "keyring:mcp-github:personal-pat" }
+    ```
+
+### Notes:
+- The `GITHUB_TOKEN` will be securely resolved from your OS keychain using the `keyring:` placeholder.
+- You may need to add the secret to your keychain using a tool like `keytar` or your OS's secret manager.
+- This pattern works for any MCP server; just adjust the command and arguments as needed for your use case.
+- In these IDEs, `env:` placeholders are generally not supported (the IDE does not pass your shell environment), so prefer `keyring:` or `file:` placeholders.
+
+---
 
 ## Installation
 
@@ -38,7 +152,9 @@ Placeholders can be used within the `--target-env` JSON string or in the `target
 
 ## Configuration File
 
-For managing multiple configurations, you can use a YAML configuration file (e.g., `.mcp-saferun.yaml` or `.mcp-saferun.yml`).
+For managing multiple configurations, you can use a YAML configuration file (e.g., `.mcp-saferun.yaml` or `.mcp-saferun.yml`). This is particularly useful when you need to switch between different sets of environment variables frequently, such as for different deployment environments (dev, staging, production) or distinct operational contexts.
+
+**Note on Usage Context:** For simpler scenarios, like configuring a single MCP server within an IDE integration (e.g., via `mcp.json`), using the `--target-env` flag directly might be more straightforward than managing a separate configuration file. The primary benefit of configuration files comes when managing multiple distinct configurations (profiles) for the *same* target command.
 
 **Search Order:**
 1. Path specified by `-c, --config <path>`.
@@ -137,7 +253,7 @@ profiles:
     - **`keyring:`**: Verify the secret exists in the OS keychain (use OS tools or `keytar` CLI if installed). Ensure `keytar` prerequisites are met.
 - **`keytar` Build/Runtime Issues:** Check platform notes below and ensure necessary build tools/libraries are installed.
 - **Invalid JSON (`--target-env`):** Ensure proper quoting, especially when used in a shell.
-- **Unsupported Placeholder (`env:`) in Some Clients (Cursor, Windsurf, Claude Desktop):** These environments don’t pass shell environment variables to `mcp-safe-run`, so `env:` placeholders won’t resolve. `file:` and `keyring:` placeholders still work. For example:
+- **Unsupported Placeholder (`env:`) in Some Clients (Cursor, Windsurf, Claude Desktop):** These environments don't pass shell environment variables to `mcp-safe-run`, so `env:` placeholders won't resolve. `file:` and `keyring:` placeholders still work. For example:
 
     ```sh
     mcp-safe-run --target-env '{"API_KEY":"file:./api_key.txt","SECRET":"keyring:my-service:account","DB_URL":"file:./db_url.txt"}' <targetCommand> [args...]
@@ -149,6 +265,77 @@ profiles:
 - **Linux:** Requires `libsecret-1-dev` and build tools like `build-essential`.
 - **Windows:** Requires Visual Studio Build Tools (can be installed via `npm install --global --production windows-build-tools`).
 
-## License
+---
 
-MIT
+## Setup for IDEs (Cursor, Windsurf, Claude Desktop)
+
+To use this project with an IDE that supports Model Context Protocol (like Cursor, Windsurf, or Claude Desktop), add an `mcpServers` section to your settings (such as `mcp_settings.json`). This enables the IDE to launch the MCP server with secure environment resolution.
+
+**Example configuration:**
+
+```json
+{
+  "mcpServers": {
+    "github": {
+      "command": "mcp-safe-run",
+      "args": [
+        "--target-env",
+        "{\"GITHUB_TOKEN\": \"keyring:mcp-github:personal-pat\"}",
+        "--",
+        "npx",
+        "-y",
+        "@modelcontextprotocol/server-github"
+      ],
+      "env": {}
+    }
+  }
+}
+```
+
+### Setting Up Secrets for IDE Integration
+
+#### Option 1: Using a Key File (`file:`)
+1. Create a hidden directory for your secrets (if it doesn't exist):
+    ```sh
+    mkdir -p ./secrets
+    ```
+2. Add a `.gitignore` rule to keep secrets out of version control:
+    ```
+    # .gitignore
+    /secrets/*
+    ```
+3. Create your secret file, e.g. `./secrets/github_token.txt`, and paste your token or secret value inside.
+4. Secure the file so only your user can read it:
+    ```sh
+    chmod 600 ./secrets/github_token.txt
+    ```
+5. In your configuration, use a `file:` placeholder, e.g.:
+    ```json
+    { "GITHUB_TOKEN": "file:./secrets/github_token.txt" }
+    ```
+
+#### Option 2: Using the OS Keychain (`keyring:`) on macOS
+1. Open the **Keychain Access** app (Applications > Utilities > Keychain Access).
+2. Click the `+` button to add a new password item.
+3. Set the **Keychain Item Name** (service) and **Account Name** (account) to match your placeholder, for example:
+    - Service: `mcp-github`
+    - Account: `personal-pat`
+4. Paste your secret/token into the "Password" field and save.
+5. Alternatively, you can use the `keytar` Node.js CLI or API to add secrets programmatically:
+    ```js
+    // Example using keytar in Node.js
+    const keytar = require('keytar');
+    keytar.setPassword('mcp-github', 'personal-pat', 'ghp_...your_token...');
+    ```
+6. In your configuration, use a `keyring:` placeholder, e.g.:
+    ```json
+    { "GITHUB_TOKEN": "keyring:mcp-github:personal-pat" }
+    ```
+
+### Notes:
+- The `GITHUB_TOKEN` will be securely resolved from your OS keychain using the `keyring:` placeholder.
+- You may need to add the secret to your keychain using a tool like `keytar` or your OS's secret manager.
+- This pattern works for any MCP server; just adjust the command and arguments as needed for your use case.
+- In these IDEs, `env:` placeholders are generally not supported (the IDE does not pass your shell environment), so prefer `keyring:` or `file:` placeholders.
+
+---
