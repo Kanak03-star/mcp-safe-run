@@ -10,7 +10,7 @@ mcp-safe-run lets you launch Model Context Protocol (MCP) servers for AI-powered
 
 1. **Install:**
     ```sh
-    npm install -g mcp-secure-launcher
+    npm install -g mcp-safe-run
     ```
 2. **Create a secrets directory:**
     ```sh
@@ -121,7 +121,7 @@ To use this project with an IDE that supports Model Context Protocol (like Curso
 ## Installation
 
 ```sh
-npm install -g mcp-secure-launcher
+npm install -g mcp-safe-run
 ```
 
 > **Note:** This CLI uses [keytar](https://github.com/atom/node-keytar) for OS keychain support. On macOS, install Xcode Command Line Tools. On Linux, install `libsecret-1-dev` and `build-essential` (or equivalent build tools). On Windows, install Visual Studio Build Tools (`npm install --global --production windows-build-tools`).
