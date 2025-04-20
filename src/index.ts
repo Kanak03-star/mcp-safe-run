@@ -2,13 +2,8 @@
 
 import { Command } from 'commander';
 import { spawn } from 'child_process';
-// Import package.json to read version (requires tsconfig "resolveJsonModule": true)
+import { resolvePlaceholders, ResolutionError } from './placeholder-resolver.js';
 import packageJson from '../package.json' with { type: 'json' };
-
-// --- Placeholder for future imports ---
-// import { resolvePlaceholders } from './placeholder-resolver';
-// import keytar from 'keytar'; // If adding keyring support later
-// import untildify from 'untildify'; // If adding file support later
 
 // --- Main CLI Setup ---
 const program = new Command();
@@ -16,75 +11,96 @@ const program = new Command();
 program
   .version(packageJson.version)
   .description('Securely launch MCP servers by resolving credentials from external sources.')
-  .option('--target-env <jsonString>', 'JSON string mapping target env vars to literals or placeholders (e.g., \'{"API_KEY": "env:MY_API_KEY"}\')')
-  // Use `.argument` for the required target command/args
-  // Use `variadic: true` to capture all arguments after '--'
+  .option('--target-env <jsonString>',
+    'JSON string mapping target env vars to literals or placeholders (e.g., \'{"API_KEY": "env:MY_API_KEY"}\')')
   .argument('<targetCommand>', 'The target MCP server command to run (e.g., npx, python)')
   .argument('[targetArgs...]', 'Arguments for the target MCP server command')
-  .allowUnknownOption(false) // Don't allow extra flags before '--'
+  .allowUnknownOption(false)
   .parse(process.argv);
 
 // --- Argument Processing ---
 const options = program.opts();
-// Ensure arguments are strings and provided
-const args = program.args as string[];
-const targetCommand = args[0];
-const targetArgs = args.slice(1);
-if (!targetCommand) {
-    console.error("Error: No target command provided.");
-    process.exit(1);
-}
+const targetCommand = program.args[0]!;
+const targetArgs = program.args.slice(1);
 
-console.error(`Launcher MVP: Starting...`); // Log to stderr
-console.error(`Target Command: ${targetCommand}`);
-console.error(`Target Args: ${targetArgs.join(' ')}`);
-console.error(`Target Env Instructions: ${options.targetEnv || '(Not provided)'}`);
+console.error(`Launcher: Starting ${packageJson.name} v${packageJson.version}`);
+console.error(`Launcher: Target Command = ${targetCommand}`);
+console.error(`Launcher: Target Args = [${targetArgs.join(', ')}]`);
+console.error(`Launcher: Raw Target Env Instructions = ${options.targetEnv || '(Not provided)'}`);
 
-// --- MVP Core Logic Placeholder ---
+// --- Async IIFE for async/await ---
+(async () => {
+  // 1. Resolve Target Environment
+  let resolvedEnv: Record<string, string | undefined> = { ...process.env };
+  let instructions: Record<string, string> = {};
 
-// 1. Parse and Resolve Placeholders from options.targetEnv
-let targetEnv = { ...process.env }; // Start with inherited environment
-if (options.targetEnv) {
+  if (options.targetEnv) {
     try {
-        const envInstructions = JSON.parse(options.targetEnv);
-        console.error("MVP: Placeholder resolution logic goes here.");
-        // TODO: Implement placeholder parsing (env:, file:, keyring:)
-        // For MVP, just merge the literal JSON for demonstration/testing
-        // In real MVP, this section resolves placeholders and merges into targetEnv
-        targetEnv = { ...targetEnv, ...envInstructions }; // !!Replace with actual resolved values!!
-        console.error("MVP: Using provided env instructions literally for now.");
-
+      instructions = JSON.parse(options.targetEnv);
+      if (typeof instructions !== 'object' || instructions === null || Array.isArray(instructions)) {
+        throw new Error('--target-env must be a valid JSON object string.');
+      }
+      console.error('Launcher: Resolving placeholders in --target-env...');
+      const resolved = await resolvePlaceholders(instructions);
+      resolvedEnv = { ...resolvedEnv, ...resolved };
+      console.error('Launcher: Placeholders resolved successfully.');
     } catch (err) {
-        console.error(`Error: Invalid JSON provided for --target-env: ${err instanceof Error ? err.message : String(err)}`);
-        process.exit(1);
+      if (err instanceof ResolutionError) {
+        console.error(`Error resolving placeholder: ${err.message} (Placeholder: ${err.placeholder})`);
+      } else if (err instanceof SyntaxError) {
+        console.error(`Error: Invalid JSON for --target-env: ${err.message}`);
+      } else if (err instanceof Error) {
+        console.error(`Error processing --target-env: ${err.message}`);
+      } else {
+        console.error(`Unknown error: ${err}`);
+      }
+      process.exit(1);
     }
-} else {
-    console.error("Warning: No --target-env provided. Target will inherit launcher's environment.");
-}
+  } else {
+    console.error('Launcher: No --target-env provided. Using inherited environment.');
+  }
 
+  // 2. Spawn Target Process
+  console.error('Launcher: Spawning target process...');
+  try {
+    const child = spawn(targetCommand, targetArgs, { env: resolvedEnv as NodeJS.ProcessEnv });
 
-// 2. Spawn the Target Process
-console.error(`MVP: Spawning target process with resolved environment...`);
-try {
-    const child = spawn(targetCommand, targetArgs, { env: targetEnv });
+    // 3. Pipe stdio
+    process.stdin.pipe(child.stdin);
+    child.stdout.pipe(process.stdout);
+    child.stderr.pipe(process.stderr);
 
-    // 3. Setup Stdio Piping
-    process.stdin.pipe(child.stdin);    // Client -> Wrapper -> Target
-    child.stdout.pipe(process.stdout); // Target -> Wrapper -> Client
-    child.stderr.pipe(process.stderr); // Target -> Wrapper -> Wrapper's stderr
-
-    // 4. Handle Target Process Exit
-    child.on('exit', (code: number | null) => {
-        console.error(`Target process exited with code ${code ?? 'null'}`);
-        process.exit(code ?? 1); // Exit wrapper with the same code
+    // 4. Exit handling
+    child.on('exit', (code: number | null, signal: NodeJS.Signals | null) => {
+      if (signal) {
+        console.error(`Launcher: Process killed by signal ${signal}`);
+        process.exit(1);
+      } else {
+        console.error(`Launcher: Process exited with code ${code}`);
+        process.exit(code ?? 0);
+      }
     });
 
     child.on('error', (err: Error) => {
-        console.error(`Error spawning/managing target process: ${err.message}`);
-        process.exit(1);
+      console.error(`Launcher: Error managing process: ${err.message}`);
+      process.stdin.unpipe(child.stdin);
+      process.exit(1);
     });
 
-} catch (spawnError) {
-     console.error(`Fatal error trying to spawn target command "${targetCommand}": ${spawnError instanceof Error ? spawnError.message : String(spawnError)}`);
-     process.exit(1);
-}
+    // 5. Relay termination signals
+    process.on('SIGINT', () => {
+      console.error('Launcher: SIGINT received, terminating child...');
+      child.kill('SIGINT'); setTimeout(() => child.kill('SIGKILL'), 1000);
+    });
+    process.on('SIGTERM', () => {
+      console.error('Launcher: SIGTERM received, terminating child...');
+      child.kill('SIGTERM'); setTimeout(() => child.kill('SIGKILL'), 1000);
+    });
+  } catch (err) {
+    console.error(`Launcher: Fatal spawn error: ${err instanceof Error ? err.message : err}`);
+    process.exit(1);
+  }
+})().catch(err => {
+  console.error(`Launcher: Uncaught error: ${err instanceof Error ? err.message : err}`);
+  process.exit(1);
+});

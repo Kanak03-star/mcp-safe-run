@@ -11,7 +11,7 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "npm run build && npm start --",
-    "prepublishOnly": "npm run build" 
+    "prepublishOnly": "npm run build"
   },
   "keywords": [
     "mcp",
@@ -26,10 +26,13 @@
   "author": "vanandell@proton.me",
   "license": "MIT",
   "dependencies": {
-    "commander": "^13.x.x"
+    "commander": "^13.x.x",
+    "keytar": "^7.9.0",
+    "untildify": "^5.0.0"
   },
   "devDependencies": {
     "@types/node": "^20.x.x",
+    "@types/untildify": "^3.0.0",
     "typescript": "^5.x.x"
   },
   "engines": {
