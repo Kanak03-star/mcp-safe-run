@@ -4,7 +4,6 @@ import os from 'os';
 import yaml from 'js-yaml';
 import untildify_default from 'untildify';
 import { PathLike } from 'fs';
-import * as fsPromises from 'fs/promises';
 
 // --- Constants ---
 const CONFIG_FILE_NAMES = ['.mcp-saferun.yaml', '.mcp-saferun.yml'];
